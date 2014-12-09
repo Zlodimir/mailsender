@@ -1,12 +1,10 @@
-package main
+package mailsender
 
 import (
-        "bytes"
         "log"
         "net/smtp"
         "fmt"
         "strconv"
-	"html/template"
 )
 
 type EmailUser struct {
@@ -23,48 +21,28 @@ type SmtpTemplateData struct {
     Body    string
 }
 
-var doc bytes.Buffer
-var err error
 
-func main() {
+func Sendmail(from string, to []string, subject string, body string) string {
 
-
-	const emailTemplate = `From: &#123;&#123;.From&#125;&#125;
-	To: &#123;&#123;.To&#125;&#125;
-	Subject: &#123;&#123;.Subject&#125;&#125;
-	&#123;&#123;.Body&#125;&#125;
-	With the Best Regards,
-	&#123;&#123;.From&#125;&#125;`
-	
-	context := &SmtpTemplateData{"ZlodimirBot", "sslupinos@gmail.com", "This is the e-mail subject line!", "Hello, this is a test e-mail body."	}
-
-	t := template.New("emailTemplate")
-	t, err = t.Parse(emailTemplate)
-	if err != nil {
-		log.Print("error trying to parse mail template")
-		fmt.Println("Error trying ti parse mail template...")
-	}
-	err = t.Execute(&doc, context)
-	if err != nil {
-	    	log.Print("error trying to execute mail template")
-		fmt.Println("Error trying to execute mail template...")
-	}
-
-        emailUser := &EmailUser{"ZlodimirBot@gmail.com", "ZlodimirBotPassword", "smtp.gmail.com", 587}
+	emailUser := &EmailUser{"ZlodimirBot@gmail.com", "ZlodimirBotPassword", "smtp.gmail.com", 587}
 	fmt.Println("Preparing auth object...")
         auth := smtp.PlainAuth("", emailUser.Username, emailUser.Password, emailUser.EmailServer)
-
+	
+	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n";
+	subj := "Subject: " +  subject + "\n"
+	msg := []byte(subj + mime + "<html><body><h3>" + body + "</h3></body></html>")
         // and send the email all in one step.
-        err := smtp.SendMail(emailUser.EmailServer + ":" + strconv.Itoa(emailUser.Port), auth, "ZlodimirBot@gmail.com",
-                []string{"sslupinos@gmail.com"},
-               	doc.Bytes())
+        err := smtp.SendMail(emailUser.EmailServer + ":" + strconv.Itoa(emailUser.Port), auth, from,
+                to,
+               	msg)
         if err != nil {
                 log.Fatal(err)
 		fmt.Println("Error sending message...")
 	} else {
 		fmt.Println("Message sent...")
         }
-
+	
+	return "Message sent ..."
 }
 
 
